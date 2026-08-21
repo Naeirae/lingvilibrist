@@ -10,8 +10,10 @@ await mkdir(dist, { recursive: true });
 await cp(source, dist, { recursive: true });
 
 const vendorRoot = resolve(dist, 'vendor/packages');
-await mkdir(vendorRoot, { recursive: true });
-await cp(resolve(root, 'packages/core'), resolve(vendorRoot, 'core'), { recursive: true });
-await cp(resolve(root, 'packages/rules'), resolve(vendorRoot, 'rules'), { recursive: true });
+for (const packageName of ['core', 'rules']) {
+  const target = resolve(vendorRoot, packageName, 'src');
+  await mkdir(target, { recursive: true });
+  await cp(resolve(root, `packages/${packageName}/src`), target, { recursive: true });
+}
 
 console.log(`Built unpacked extension at ${dist}`);
