@@ -9,7 +9,7 @@ permissions:
   contents: read
 
 jobs:
-  test-and-build:
+  javascript:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -37,3 +37,18 @@ jobs:
           name: lingvilibrist-chrome-extension
           path: dist/chrome-extension
           if-no-files-found: error
+
+  python-nlp:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install local morphology package
+        run: python -m pip install ./python/nlp pytest
+      - name: Test local morphology package
+        run: pytest -q python/nlp/tests
+      - name: Smoke-test CLI
+        shell: bash
+        run: printf 'Это тестовый текст.' | lingvilibrist-nlp >/tmp/lingvilibrist-nlp.json && python -m json.tool /tmp/lingvilibrist-nlp.json >/dev/null
