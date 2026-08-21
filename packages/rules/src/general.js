@@ -2,7 +2,7 @@ import { makeFinding } from '../../core/src/finding.js';
 
 export const generalRulesAnalyzer = Object.freeze({
   id: 'general-rules',
-  version: '0.1.0',
+  version: '0.1.1',
   async analyze(text) {
     const findings = [];
     findings.push(...doubleSpaceFindings(text));
@@ -98,20 +98,32 @@ function mixedScriptFindings(text) {
 
 function immediateDuplicateWordFindings(text) {
   const findings = [];
-  const re = /\b([A-Za-zА-Яа-яЁё]{2,})(\s+)\1\b/giu;
-  for (const match of text.matchAll(re)) {
+  const words = [...text.matchAll(/[\p{L}]+/gu)];
+
+  for (let index = 0; index < words.length - 1; index += 1) {
+    const left = words[index];
+    const right = words[index + 1];
+    if (left[0].length < 2 || right[0].length < 2) continue;
+    if (left[0].toLocaleLowerCase('ru') !== right[0].toLocaleLowerCase('ru')) continue;
+
+    const between = text.slice(left.index + left[0].length, right.index);
+    if (!/^\s+$/.test(between)) continue;
+
+    const start = left.index;
+    const end = right.index + right[0].length;
     findings.push(makeFinding(text, {
-      id: `general.immediate-duplicate-word@${match.index}`,
+      id: `general.immediate-duplicate-word@${start}`,
       ruleId: 'general.immediate-duplicate-word',
       kind: 'notice',
       severity: 'review',
       confidence: 0.9,
-      start: match.index,
-      end: match.index + match[0].length,
-      before: match[0],
+      start,
+      end,
+      before: text.slice(start, end),
       explanation: 'The same word appears twice in a row. Check whether the repetition is accidental.',
       origin: 'deterministic'
     }));
   }
+
   return findings;
 }
