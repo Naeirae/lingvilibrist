@@ -2,7 +2,7 @@ import { makeFinding } from '../../core/src/finding.js';
 
 export const generalRulesAnalyzer = Object.freeze({
   id: 'general-rules',
-  version: '0.1.1',
+  version: '0.1.2',
   async analyze(text) {
     const findings = [];
     findings.push(...doubleSpaceFindings(text));
@@ -76,7 +76,10 @@ function spaceAfterOpeningFindings(text) {
 
 function mixedScriptFindings(text) {
   const findings = [];
-  const tokenRe = /[A-Za-zА-Яа-яЁё][A-Za-zА-Яа-яЁё0-9_-]*/g;
+  // Deliberately stop at hyphens/underscores. Editorial compounds such as
+  // "IT-команда" contain two legitimate script-specific parts and should not
+  // be treated like a homoglyph typo inside one lexical token.
+  const tokenRe = /[\p{L}\p{N}]+/gu;
   for (const match of text.matchAll(tokenRe)) {
     const token = match[0];
     if (!/[A-Za-z]/.test(token) || !/[А-Яа-яЁё]/.test(token)) continue;
