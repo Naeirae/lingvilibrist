@@ -1,0 +1,37 @@
+[
+  {
+    "id": "double-space",
+    "text": "Это  тест.",
+    "expectRuleIds": ["general.double-space"]
+  },
+  {
+    "id": "space-before-comma",
+    "text": "Привет , мир.",
+    "expectRuleIds": ["general.space-before-punctuation"]
+  },
+  {
+    "id": "mixed-homoglyph",
+    "text": "В слове cлово первая буква латинская.",
+    "expectRuleIds": ["general.mixed-script-token"]
+  },
+  {
+    "id": "duplicate-word",
+    "text": "Это очень очень важно.",
+    "expectRuleIds": ["general.immediate-duplicate-word"]
+  },
+  {
+    "id": "clean-russian",
+    "text": "Это обычное русское предложение.",
+    "expectRuleIds": []
+  },
+  {
+    "id": "legitimate-hybrid-compound",
+    "text": "В компании работает IT-команда.",
+    "expectRuleIds": []
+  },
+  {
+    "id": "technical-latin",
+    "text": "Используйте TypeScript и Node.js.",
+    "expectRuleIds": []
+  }
+]
