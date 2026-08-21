@@ -21,6 +21,24 @@ test('valid replacement finding passes validation', () => {
   assert.equal(finding.after, 'Образец');
 });
 
+test('valid insert finding may use an empty source range', () => {
+  const finding = makeFinding(source, {
+    id: 'insert@6',
+    ruleId: 'demo.insert',
+    kind: 'insert',
+    severity: 'safe',
+    confidence: 1,
+    start: 6,
+    end: 6,
+    before: '',
+    after: ',',
+    explanation: 'Test insertion.',
+    origin: 'deterministic'
+  });
+  assert.equal(finding.before, '');
+  assert.equal(finding.after, ',');
+});
+
 test('replacement no-op is rejected', () => {
   assert.throws(() => validateFinding(source, {
     id: 'demo@0',
