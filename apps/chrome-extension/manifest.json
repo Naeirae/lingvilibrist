@@ -1,0 +1,16 @@
+{
+  "manifest_version": 3,
+  "name": "Lingvilibrist",
+  "version": "0.1.0",
+  "description": "Review-first proofreading for Russian text. Local deterministic checks; no mandatory cloud service.",
+  "permissions": ["storage", "activeTab", "scripting"],
+  "host_permissions": ["https://docs.google.com/document/d/*"],
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "Lingvilibrist"
+  },
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  }
+}
