@@ -1,13 +1,5 @@
 import { validateFinding } from './finding.js';
 
-const ORIGIN_PRIORITY = Object.freeze({
-  deterministic: 0,
-  morphology: 10,
-  syntax: 20,
-  external: 30,
-  ai: 40
-});
-
 export function normalizeFindings(source, findings) {
   const valid = [];
   const rejected = [];
@@ -43,9 +35,19 @@ export function dedupeKey(finding) {
   ].join('\u0001');
 }
 
+function originPriority(origin) {
+  const value = String(origin || '').toLowerCase();
+  if (value.startsWith('deterministic')) return 0;
+  if (value.includes('morph')) return 10;
+  if (value.includes('syntax') || value.includes('dependency')) return 20;
+  if (value.includes('external')) return 30;
+  if (value.includes('ai')) return 40;
+  return 100;
+}
+
 function preferFinding(candidate, current) {
-  const candidatePriority = ORIGIN_PRIORITY[candidate.origin] ?? 100;
-  const currentPriority = ORIGIN_PRIORITY[current.origin] ?? 100;
+  const candidatePriority = originPriority(candidate.origin);
+  const currentPriority = originPriority(current.origin);
   if (candidatePriority !== currentPriority) return candidatePriority < currentPriority;
   if (candidate.confidence !== current.confidence) return candidate.confidence > current.confidence;
   return String(candidate.ruleId).localeCompare(String(current.ruleId), 'en') < 0;
