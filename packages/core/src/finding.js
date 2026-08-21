@@ -17,11 +17,14 @@ export function validateFinding(source, finding) {
     throw new FindingValidationError('finding must be an object', finding);
   }
 
-  const requiredStrings = ['id', 'ruleId', 'kind', 'severity', 'before', 'explanation', 'origin'];
-  for (const field of requiredStrings) {
+  const requiredNonEmptyStrings = ['id', 'ruleId', 'kind', 'severity', 'explanation', 'origin'];
+  for (const field of requiredNonEmptyStrings) {
     if (typeof finding[field] !== 'string' || !finding[field].trim()) {
       throw new FindingValidationError(`${field} must be a non-empty string`, finding);
     }
+  }
+  if (typeof finding.before !== 'string') {
+    throw new FindingValidationError('before must be a string', finding);
   }
 
   if (!FINDING_KINDS.includes(finding.kind)) {
@@ -52,6 +55,9 @@ export function validateFinding(source, finding) {
     if (slice !== finding.before) {
       throw new FindingValidationError('before does not match source range', finding);
     }
+    if (finding.before.length === 0) {
+      throw new FindingValidationError(`${finding.kind} findings require non-empty before text`, finding);
+    }
   }
 
   if (finding.kind === 'replace') {
@@ -64,9 +70,6 @@ export function validateFinding(source, finding) {
   }
 
   if (finding.kind === 'delete') {
-    if (finding.before.length === 0) {
-      throw new FindingValidationError('delete findings require non-empty before text', finding);
-    }
     if (finding.after !== undefined && finding.after !== '') {
       throw new FindingValidationError('delete findings may only omit after or use an empty string', finding);
     }
