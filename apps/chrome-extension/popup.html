@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Lingvilibrist</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <main>
+    <header>
+      <div>
+        <h1>Lingvilibrist</h1>
+        <p>Локальная корректорская проверка без обязательного облака</p>
+      </div>
+      <span id="version"></span>
+    </header>
+
+    <section class="source panel">
+      <div class="row">
+        <button id="readActive" class="primary">Считать Google Doc</button>
+        <button id="clear">Очистить</button>
+      </div>
+      <textarea id="text" placeholder="Или вставьте текст вручную"></textarea>
+      <div id="sourceState" class="muted">Источник не выбран.</div>
+      <div class="row"><button id="run" class="primary">Запустить проверку</button></div>
+    </section>
+
+    <section class="panel">
+      <div class="section-head"><h2>Находки</h2><span id="count">0</span></div>
+      <div id="status" class="muted">Проверка ещё не запускалась.</div>
+      <div id="findings"></div>
+    </section>
+
+    <section class="panel">
+      <div class="section-head"><h2>Экспорт</h2><button id="copy">Копировать JSON</button></div>
+      <textarea id="output" readonly placeholder="Выбранные находки появятся здесь"></textarea>
+    </section>
+  </main>
+  <script type="module" src="popup.js"></script>
+</body>
+</html>
