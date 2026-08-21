@@ -1,0 +1,20 @@
+[project]
+name = "lingvilibrist-nlp"
+version = "0.1.0"
+description = "Optional local morphology analyzer for Lingvilibrist"
+requires-python = ">=3.11"
+dependencies = [
+  "razdel==0.5.0",
+  "pymorphy3==2.0.6",
+  "pymorphy3-dicts-ru>=2.4.417150.4580142"
+]
+
+[project.scripts]
+lingvilibrist-nlp = "lingvilibrist_nlp.cli:main"
+
+[build-system]
+requires = ["setuptools>=75"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]
