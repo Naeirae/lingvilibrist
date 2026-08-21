@@ -5,10 +5,13 @@ import struct
 import sys
 from typing import BinaryIO
 
+from . import __version__
 from .analyzer import analyze_text
 
 PROTOCOL_VERSION = 1
-MAX_MESSAGE_BYTES = 4 * 1024 * 1024
+MAX_REQUEST_BYTES = 4 * 1024 * 1024
+# Chrome accepts at most 1 MiB from a native host. Keep a safety margin.
+MAX_RESPONSE_BYTES = 900 * 1024
 MAX_TEXT_CHARS = 500_000
 
 
@@ -19,7 +22,7 @@ def read_message(stream: BinaryIO) -> dict | None:
     if len(header) != 4:
         raise ValueError("incomplete native messaging header")
     (size,) = struct.unpack("=I", header)
-    if size <= 0 or size > MAX_MESSAGE_BYTES:
+    if size <= 0 or size > MAX_REQUEST_BYTES:
         raise ValueError(f"native messaging payload size out of bounds: {size}")
     payload = stream.read(size)
     if len(payload) != size:
@@ -32,11 +35,28 @@ def read_message(stream: BinaryIO) -> dict | None:
 
 def write_message(stream: BinaryIO, value: dict) -> None:
     payload = json.dumps(value, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
-    if len(payload) > MAX_MESSAGE_BYTES:
+    if len(payload) > MAX_RESPONSE_BYTES:
         raise ValueError("native messaging response is too large")
     stream.write(struct.pack("=I", len(payload)))
     stream.write(payload)
     stream.flush()
+
+
+def _browser_analysis(result: dict) -> dict:
+    """Return only data the extension needs, keeping native responses bounded."""
+    findings = result.get("findings") if isinstance(result.get("findings"), list) else []
+    tokens = result.get("tokens") if isinstance(result.get("tokens"), list) else []
+    sentences = result.get("sentences") if isinstance(result.get("sentences"), list) else []
+    return {
+        "schemaVersion": result.get("schemaVersion", 1),
+        "engine": result.get("engine", "pymorphy3"),
+        "findings": findings,
+        "summary": {
+            "tokenCount": len(tokens),
+            "sentenceCount": len(sentences),
+            "findingCount": len(findings),
+        },
+    }
 
 
 def handle_message(message: dict) -> dict:
@@ -49,6 +69,14 @@ def handle_message(message: dict) -> dict:
             "protocolVersion": PROTOCOL_VERSION,
             "requestId": request_id,
             "service": "lingvilibrist-local-nlp",
+            "serviceVersion": __version__,
+            "capabilities": [
+                "razdel_segmentation",
+                "pymorphy3_morphology",
+                "lexical_review",
+                "agreement_candidates",
+                "agreement_parse_lattice",
+            ],
         }
 
     if message_type != "analyze":
@@ -92,7 +120,8 @@ def handle_message(message: dict) -> dict:
         "ok": True,
         "protocolVersion": PROTOCOL_VERSION,
         "requestId": request_id,
-        "analysis": result,
+        "serviceVersion": __version__,
+        "analysis": _browser_analysis(result),
     }
 
 
