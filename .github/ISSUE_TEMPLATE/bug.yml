@@ -1,0 +1,49 @@
+name: Bug report
+description: Report reproducible Lingvilibrist behavior
+title: "[bug] "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Please use synthetic or non-sensitive text in public reports. Do not attach private documents, credentials, or workplace data.
+  - type: input
+    id: version
+    attributes:
+      label: Version / commit
+      placeholder: v0.1.0 or commit SHA
+    validations:
+      required: true
+  - type: dropdown
+    id: component
+    attributes:
+      label: Component
+      options:
+        - Core finding contract
+        - Deterministic rules
+        - Chrome extension
+        - Google Docs adapter
+        - Local NLP package
+        - Build / CI
+        - Documentation
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Reproduction steps
+      description: Use minimal synthetic text where possible.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+    validations:
+      required: true
