@@ -16,8 +16,9 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
+          cache: 'npm'
       - name: Install
-        run: npm install --ignore-scripts --no-audit --no-fund
+        run: npm ci --ignore-scripts --no-audit --no-fund
       - name: Test and build
         run: npm run check
       - name: Validate extension manifest
@@ -45,6 +46,8 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
+          cache: 'pip'
+          cache-dependency-path: python/nlp/pyproject.toml
       - name: Install local morphology package
         run: python -m pip install ./python/nlp pytest
       - name: Test local morphology package
