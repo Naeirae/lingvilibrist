@@ -26,6 +26,11 @@ test('does not flag ordinary Latin technical token as mixed script', async () =>
   assert.equal(result.filter(item => item.ruleId === 'general.mixed-script-token').length, 0);
 });
 
+test('does not flag a hyphenated Latin-Cyrillic editorial compound', async () => {
+  const result = await findings('В компании работает IT-команда.');
+  assert.equal(result.filter(item => item.ruleId === 'general.mixed-script-token').length, 0);
+});
+
 test('detects immediate repeated word without proposing a blind edit', async () => {
   const result = await findings('Это очень очень важно.');
   const duplicate = result.find(item => item.ruleId === 'general.immediate-duplicate-word');
