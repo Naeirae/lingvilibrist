@@ -12,6 +12,7 @@ restoreState();
 
 $('text').addEventListener('input', () => {
   currentRunId += 1;
+  $('run').disabled = false;
   currentSource = { kind: 'manual', reliability: 'high', readMode: 'manual' };
   currentFindings = [];
   renderSource();
@@ -23,6 +24,7 @@ $('text').addEventListener('input', () => {
 
 $('readActive').addEventListener('click', async () => {
   currentRunId += 1;
+  $('run').disabled = false;
   setStatus('Считываю активный документ…');
   const result = await chrome.runtime.sendMessage({ type: 'READ_ACTIVE_SOURCE' }).catch((error) => ({ ok: false, error: String(error) }));
   if (!result?.ok) return setStatus(result?.error || 'Не удалось считать документ.', 'error');
@@ -39,6 +41,7 @@ $('readActive').addEventListener('click', async () => {
 $('run').addEventListener('click', runCheck);
 $('clear').addEventListener('click', async () => {
   currentRunId += 1;
+  $('run').disabled = false;
   $('text').value = '';
   currentSource = { kind: 'manual', reliability: 'high', readMode: 'manual' };
   currentFindings = [];
@@ -71,7 +74,7 @@ async function runCheck() {
     const failed = result.analyzers.filter((item) => !item.ok).length;
     setStatus(`Проверено ${result.textLength} символов. Находок: ${result.findings.length}${failed ? `; недоступно анализаторов: ${failed}` : ''}.`, result.degraded ? 'warn' : 'ok');
   } finally {
-    if (runId === currentRunId) $('run').disabled = false;
+    $('run').disabled = false;
   }
 }
 
