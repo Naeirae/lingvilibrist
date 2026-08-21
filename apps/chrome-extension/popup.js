@@ -6,9 +6,35 @@ const SESSION_KEY = 'lingvilibristSessionV01';
 let currentSource = { kind: 'manual', reliability: 'high', readMode: 'manual' };
 let currentFindings = [];
 let currentRunId = 0;
+let localNlpAvailable = false;
+
+const localNlpAnalyzer = {
+  id: 'local-morphology',
+  version: 'native-v1',
+  async analyze(text) {
+    const response = await chrome.runtime.sendMessage({ type: 'LOCAL_NLP_ANALYZE', text }).catch((error) => ({
+      ok: false,
+      error: 'native_message_failed',
+      detail: String(error?.message || error)
+    }));
+    if (!response?.ok) {
+      const error = new Error(response?.detail || response?.error || 'Local NLP is unavailable.');
+      error.code = response?.error || 'native_unavailable';
+      throw error;
+    }
+    localNlpAvailable = true;
+    const analysis = response.analysis || {};
+    return {
+      findings: Array.isArray(analysis.findings) ? analysis.findings : [],
+      version: response.serviceVersion || localNlpAnalyzer.version,
+      degraded: false
+    };
+  }
+};
 
 $('version').textContent = `v${chrome.runtime.getManifest().version}`;
 restoreState();
+refreshLocalNlp();
 
 $('text').addEventListener('input', () => {
   currentRunId += 1;
@@ -38,6 +64,7 @@ $('readActive').addEventListener('click', async () => {
   setStatus(`Считано ${$('text').value.length} символов. Запустите проверку.`, 'ok');
 });
 
+$('retryLocalNlp').addEventListener('click', () => refreshLocalNlp(true));
 $('run').addEventListener('click', runCheck);
 $('clear').addEventListener('click', async () => {
   currentRunId += 1;
@@ -58,6 +85,25 @@ $('copy').addEventListener('click', async () => {
   setStatus('JSON скопирован.', 'ok');
 });
 
+async function refreshLocalNlp(force = false) {
+  if (force) $('localNlpState').textContent = 'Локальная морфология: проверяю Native Messaging host…';
+  const response = await chrome.runtime.sendMessage({ type: 'LOCAL_NLP_PING' }).catch((error) => ({
+    ok: false,
+    error: 'native_message_failed',
+    detail: String(error?.message || error)
+  }));
+  localNlpAvailable = Boolean(response?.ok);
+  if (response?.ok) {
+    const version = response.serviceVersion ? ` v${response.serviceVersion}` : '';
+    $('localNlpState').textContent = `Локальная морфология: доступна${version}. Текст не отправляется в облако.`;
+    $('localNlpState').className = 'muted ok';
+  } else {
+    $('localNlpState').textContent = `Локальная морфология: host не подключён. Детерминированные проверки продолжат работать. ${response?.detail || ''}`.trim();
+    $('localNlpState').className = 'muted warn';
+  }
+  return response;
+}
+
 async function runCheck() {
   const text = $('text').value;
   if (!text.trim()) return setStatus('Сначала вставьте или считайте текст.', 'warn');
@@ -65,14 +111,24 @@ async function runCheck() {
   $('run').disabled = true;
   setStatus('Проверяю…');
   try {
-    const result = await analyzeText(text, { analyzers: [generalRulesAnalyzer] });
+    const analyzers = [generalRulesAnalyzer, localNlpAnalyzer];
+    const result = await analyzeText(text, { analyzers, analyzerTimeoutMs: 35000 });
     if (runId !== currentRunId || text !== $('text').value) return;
     currentFindings = result.findings.map((finding) => ({ ...finding, approved: finding.severity === 'safe' }));
     renderFindings();
     updateExport();
     await saveState();
-    const failed = result.analyzers.filter((item) => !item.ok).length;
-    setStatus(`Проверено ${result.textLength} символов. Находок: ${result.findings.length}${failed ? `; недоступно анализаторов: ${failed}` : ''}.`, result.degraded ? 'warn' : 'ok');
+    const failed = result.analyzers.filter((item) => !item.ok);
+    const localStatus = result.analyzers.find((item) => item.id === 'local-morphology');
+    localNlpAvailable = Boolean(localStatus?.ok);
+    if (localStatus?.ok) {
+      $('localNlpState').textContent = `Локальная морфология: анализ выполнен${localStatus.version ? ` v${localStatus.version}` : ''}.`;
+      $('localNlpState').className = 'muted ok';
+    } else if (localStatus) {
+      $('localNlpState').textContent = `Локальная морфология недоступна: ${localStatus.error}. Детерминированные правила выполнены независимо.`;
+      $('localNlpState').className = 'muted warn';
+    }
+    setStatus(`Проверено ${result.textLength} символов. Находок: ${result.findings.length}${failed.length ? `; недоступно анализаторов: ${failed.length}` : ''}.`, result.degraded ? 'warn' : 'ok');
   } finally {
     $('run').disabled = false;
   }
