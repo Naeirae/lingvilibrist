@@ -1,6 +1,6 @@
 {
   "name": "lingvilibrist",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "description": "Extensible Russian proofreading and editorial review tool with deterministic rules and review-first findings.",
   "type": "module",
