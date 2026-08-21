@@ -60,3 +60,20 @@ test('equivalent findings are deduplicated in favor of deterministic origin', as
   assert.equal(result.findings[0].origin, 'deterministic');
   assert.equal(result.findings[0].severity, 'safe');
 });
+
+test('timed-out optional analyzer is isolated and reported', async () => {
+  const slow = {
+    id: 'slow',
+    async analyze(_text, context) {
+      await new Promise((resolve) => setTimeout(resolve, 100));
+      if (context.signal?.aborted) return { findings: [] };
+      return { findings: [] };
+    }
+  };
+  const result = await analyzeText(source, { analyzers: [deterministic, slow], analyzerTimeoutMs: 10 });
+  assert.equal(result.findings.length, 1);
+  assert.equal(result.degraded, true);
+  const status = result.analyzers.find(item => item.id === 'slow');
+  assert.equal(status.ok, false);
+  assert.equal(status.code, 'analyzer_timeout');
+});
