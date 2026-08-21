@@ -7,3 +7,4 @@ export {
   validateFinding
 } from './finding.js';
 export { dedupeKey, normalizeFindings } from './normalize.js';
+export { DECLARATIVE_RULE_KINDS, runDeclarativeRules, validateRule } from './rule-engine.js';
