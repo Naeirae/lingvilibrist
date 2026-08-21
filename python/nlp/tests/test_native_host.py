@@ -22,13 +22,19 @@ def test_native_message_round_trip():
     assert response["ok"] is True
     assert response["requestId"] == "r1"
     assert response["protocolVersion"] == 1
+    assert response["serviceVersion"] == "0.2.0"
+    assert "pymorphy3_morphology" in response["capabilities"]
 
 
-def test_analyze_message_returns_local_morphology():
+def test_analyze_message_returns_bounded_browser_payload():
     response = handle_message({"type": "analyze", "requestId": 7, "text": "новая проект запущен"})
     assert response["ok"] is True
     assert response["requestId"] == 7
-    rule_ids = [item["ruleId"] for item in response["analysis"]["findings"]]
+    analysis = response["analysis"]
+    assert "tokens" not in analysis
+    assert "sentences" not in analysis
+    assert analysis["summary"]["tokenCount"] >= 3
+    rule_ids = [item["ruleId"] for item in analysis["findings"]]
     assert "ru.morph.agreement-candidate" in rule_ids
 
 
