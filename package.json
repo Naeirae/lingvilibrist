@@ -1,0 +1,16 @@
+{
+  "name": "lingvilibrist",
+  "version": "0.0.1",
+  "private": true,
+  "description": "Extensible Russian proofreading and editorial review tool with deterministic rules and review-first findings.",
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "test": "node --test",
+    "test:core": "node --test packages/core/test/*.test.js",
+    "test:rules": "node --test packages/rules/test/*.test.js",
+    "check": "npm run test"
+  }
+}
