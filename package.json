@@ -14,6 +14,7 @@
     "test:core": "node --test packages/core/test/*.test.js",
     "test:rules": "node --test packages/rules/test/*.test.js",
     "test:adapters": "node --test packages/adapters/test/*.test.js",
-    "check": "npm run test && npm run build:extension"
+    "check:extension": "node --check apps/chrome-extension/background.js && node --check apps/chrome-extension/popup.js",
+    "check": "npm run test && npm run check:extension && npm run build:extension"
   }
 }
