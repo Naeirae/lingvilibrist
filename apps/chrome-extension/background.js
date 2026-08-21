@@ -1,10 +1,64 @@
 const GOOGLE_DOC_RE = /^https:\/\/docs\.google\.com\/document\/d\/([\w-]+)/i;
+const LOCAL_NLP_HOST = 'com.lingvilibrist.local_nlp';
 
 chrome.runtime.onMessage.addListener((message, _sender, reply) => {
-  if (message?.type !== 'READ_ACTIVE_SOURCE') return false;
-  readActiveSource().then(reply).catch((error) => reply({ ok: false, error: String(error?.message || error) }));
-  return true;
+  if (message?.type === 'READ_ACTIVE_SOURCE') {
+    readActiveSource().then(reply).catch((error) => reply({ ok: false, error: String(error?.message || error) }));
+    return true;
+  }
+  if (message?.type === 'LOCAL_NLP_PING') {
+    sendNative({ type: 'ping', requestId: requestId('ping') }, 5000).then(reply);
+    return true;
+  }
+  if (message?.type === 'LOCAL_NLP_ANALYZE') {
+    const text = String(message.text || '');
+    if (!text.trim()) {
+      reply({ ok: false, error: 'empty_text' });
+      return false;
+    }
+    sendNative({ type: 'analyze', requestId: requestId('analyze'), text }, 30000).then(reply);
+    return true;
+  }
+  return false;
 });
+
+function requestId(prefix) {
+  return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+}
+
+function sendNative(payload, timeoutMs) {
+  return new Promise((resolve) => {
+    let settled = false;
+    const timer = setTimeout(() => {
+      if (settled) return;
+      settled = true;
+      resolve({ ok: false, error: 'native_timeout', detail: `Local NLP did not answer within ${Math.round(timeoutMs / 1000)} seconds.` });
+    }, timeoutMs);
+
+    try {
+      chrome.runtime.sendNativeMessage(LOCAL_NLP_HOST, payload, (response) => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timer);
+        const runtimeError = chrome.runtime.lastError;
+        if (runtimeError) {
+          resolve({ ok: false, error: 'native_unavailable', detail: String(runtimeError.message || runtimeError) });
+          return;
+        }
+        if (!response || typeof response !== 'object') {
+          resolve({ ok: false, error: 'native_empty_response', detail: 'Local NLP returned an empty response.' });
+          return;
+        }
+        resolve(response);
+      });
+    } catch (error) {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      resolve({ ok: false, error: 'native_exception', detail: String(error?.message || error) });
+    }
+  });
+}
 
 async function readActiveSource() {
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
