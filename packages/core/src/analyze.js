@@ -63,12 +63,12 @@ function normalizeTimeout(value) {
 }
 
 async function runAnalyzer(analyzer, text, context) {
-  const controller = new AbortController();
-  const signal = combineSignals(context.signal, controller.signal);
+  const timeoutController = new AbortController();
+  const signal = mergeAbortSignals(context.signal, timeoutController.signal);
   let timer;
   const timeout = new Promise((_, reject) => {
     timer = setTimeout(() => {
-      controller.abort('timeout');
+      timeoutController.abort('timeout');
       const error = new Error(`analyzer timed out after ${context.timeoutMs} ms`);
       error.code = 'analyzer_timeout';
       reject(error);
@@ -85,18 +85,19 @@ async function runAnalyzer(analyzer, text, context) {
   }
 }
 
-function combineSignals(outer, inner) {
-  if (!outer) return inner;
+function mergeAbortSignals(outer, timeoutSignal) {
+  if (!outer) return timeoutSignal;
   if (typeof AbortSignal !== 'undefined' && typeof AbortSignal.any === 'function') {
-    return AbortSignal.any([outer, inner]);
+    return AbortSignal.any([outer, timeoutSignal]);
   }
-  if (outer.aborted) return outer;
-  outer.addEventListener('abort', () => {
-    if (!inner.aborted) {
-      // The inner controller itself is intentionally private to runAnalyzer. In
-      // older runtimes without AbortSignal.any the analyzer still receives the
-      // caller's signal so cooperative cancellation remains possible.
-    }
-  }, { once: true });
-  return outer;
+
+  const controller = new AbortController();
+  const abort = (event) => {
+    if (!controller.signal.aborted) controller.abort(event?.target?.reason);
+  };
+  if (outer.aborted) controller.abort(outer.reason);
+  else outer.addEventListener('abort', abort, { once: true });
+  if (timeoutSignal.aborted) controller.abort(timeoutSignal.reason);
+  else timeoutSignal.addEventListener('abort', abort, { once: true });
+  return controller.signal;
 }
