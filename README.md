@@ -1,14 +1,14 @@
 # Lingvilibrist
 
-**Extensible Russian proofreading and editorial review tool with deterministic rules, morphology, and review-first findings.**
+**Extensible Russian proofreading and editorial review tool with deterministic rules, local morphology, and review-first findings.**
 
 Lingvilibrist is a proofreading and editorial analysis tool for Russian text. Language tooling should explain what it found, show the exact affected fragment, and leave the final decision to the editor instead of silently rewriting prose.
 
-The public edition is an **offline-first, production-oriented** product. Its core checks run without a private backend or workplace infrastructure. Optional linguistic components can be added behind adapters later, but the base review workflow does not depend on a cloud service.
+The public edition is an **offline-first, production-oriented** product. Core checks run without a private backend or workplace infrastructure. Optional local morphology is connected through Chrome Native Messaging; deterministic checks continue to work when that local host is absent.
 
 ## Current runnable MVP
 
-The repository now builds an unpacked Manifest V3 Chrome extension with:
+The repository builds an unpacked Manifest V3 Chrome extension with:
 
 - manual text review;
 - a narrow Google Docs source adapter;
@@ -20,9 +20,13 @@ The repository now builds an unpacked Manifest V3 Chrome extension with:
 - selection of approved findings;
 - neutral JSON export;
 - analyzer failure isolation;
+- optional local Razdel + pymorphy3 morphology through Native Messaging;
+- conservative unknown-word review and multiple-parse agreement candidates;
 - regression fixtures and CI packaging.
 
 The Google Docs adapter is intentionally conservative. If the current Docs UI does not expose enough visible text, Lingvilibrist reports degraded acquisition and asks for manual input instead of pretending that it read the document correctly.
+
+The local NLP path is optional. The extension explicitly shows whether the native host is available; a missing host degrades only morphology, not deterministic proofreading. Installation is documented in [docs/LOCAL_NLP.md](docs/LOCAL_NLP.md).
 
 ## Build and test
 
@@ -42,7 +46,9 @@ dist/chrome-extension/
 
 In Chrome, open `chrome://extensions`, enable Developer mode, choose **Load unpacked**, and select that directory.
 
-CI runs tests, builds the extension, validates the MV3 manifest, scans the public tree for private-infrastructure markers, and publishes the unpacked extension as a workflow artifact.
+For optional local morphology, install the Python package and register the Native Messaging host for the extension ID. See [docs/LOCAL_NLP.md](docs/LOCAL_NLP.md).
+
+CI runs JavaScript tests, Chrome-source syntax checks, builds the extension, validates the MV3 manifest, scans the public tree for private-infrastructure markers, runs Python NLP tests, smoke-tests the CLI, and publishes the unpacked extension as a workflow artifact.
 
 ## Why this project exists
 
@@ -61,16 +67,19 @@ Most writing assistants optimize for automatic rewriting. Lingvilibrist takes a 
 
 ```text
 apps/
-  chrome-extension/       Standalone MV3 UI and Google Docs adapter
+  chrome-extension/       Standalone MV3 UI, Google Docs adapter, Native Messaging client
 packages/
   core/                   Finding model, validation, normalization, analyzer runner
   rules/                  Public deterministic Russian-language checks
   adapters/               Neutral source-adapter contracts
+python/
+  nlp/                    Optional local morphology package and Native Messaging host
 fixtures/
   russian/                Public regression corpus
 docs/
   ARCHITECTURE.md
   ROADMAP.md
+  LOCAL_NLP.md
   BRANDING.md
   PRIVACY.md
   SECURITY.md
@@ -104,10 +113,10 @@ The core validates that a finding points to the exact analyzed range. No-op repl
 
 1. **Core before UI.** The rule engine is testable without Chrome.
 2. **No silent mutation.** Analysis and editing are separate operations.
-3. **Adapters at the edges.** Google Docs, browser UI and future integrations do not own linguistic logic.
+3. **Adapters at the edges.** Google Docs, browser UI and integrations do not own linguistic logic.
 4. **Rule provenance.** Every deterministic correction has an ID, rationale and regression coverage.
 5. **Review-first NLP.** Morphological and syntactic models generate evidence and candidates; ambiguous results stay review-only.
-6. **Offline-first.** Core usage does not require sending text to a mandatory remote service.
+6. **Offline-first.** Core usage and optional morphology do not require sending text to a mandatory remote service.
 7. **Fail visibly.** Optional analyzers may fail independently without disabling deterministic checks.
 8. **Public/private boundary.** CI guards against accidental inclusion of internal infrastructure markers.
 
@@ -115,9 +124,8 @@ The core validates that a finding points to the exact analyzed range. No-op repl
 
 The next product layers are:
 
+- end-to-end installation smoke tests for the Native Messaging path;
 - stronger source acquisition and block classification;
-- public rule metadata and rule-pack contracts;
-- a local morphology adapter;
 - lexical review and user dictionaries;
 - dependency syntax behind a replaceable analyzer interface;
 - richer regression corpus and performance gates;
