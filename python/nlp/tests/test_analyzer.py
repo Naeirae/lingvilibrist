@@ -18,3 +18,17 @@ def test_capitalized_unknown_word_is_not_blindly_reported_as_typo():
     result = analyze_text("Лингвилибрист работает локально")
     warnings = [item for item in result["findings"] if item["ruleId"] == "ru.lexical.unknown-word"]
     assert not any(item["before"] == "Лингвилибрист" for item in warnings)
+
+
+def test_clear_adjective_noun_mismatch_is_review_only():
+    result = analyze_text("новая проект запущен")
+    findings = [item for item in result["findings"] if item["ruleId"] == "ru.morph.agreement-candidate"]
+    assert findings
+    assert findings[0]["kind"] == "notice"
+    assert findings[0]["severity"] == "review"
+
+
+def test_normal_adjective_noun_agreement_is_not_reported():
+    result = analyze_text("новый проект запущен")
+    findings = [item for item in result["findings"] if item["ruleId"] == "ru.morph.agreement-candidate"]
+    assert not findings
