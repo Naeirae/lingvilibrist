@@ -1,9 +1,9 @@
 {
   "manifest_version": 3,
   "name": "Lingvilibrist",
-  "version": "0.1.0",
-  "description": "Review-first proofreading for Russian text. Local deterministic checks; no mandatory cloud service.",
-  "permissions": ["storage", "activeTab", "scripting"],
+  "version": "0.2.0",
+  "description": "Review-first proofreading for Russian text with local deterministic checks and optional local morphology via Native Messaging.",
+  "permissions": ["storage", "activeTab", "scripting", "nativeMessaging"],
   "host_permissions": ["https://docs.google.com/document/d/*"],
   "action": {
     "default_popup": "popup.html",
