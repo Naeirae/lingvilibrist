@@ -3,10 +3,12 @@ name: CI
 on:
   push:
     branches: [main]
+    paths-ignore:
+      - 'build-status/**'
   pull_request:
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   javascript:
@@ -55,3 +57,40 @@ jobs:
       - name: Smoke-test CLI
         shell: bash
         run: printf 'Это тестовый текст.' | lingvilibrist-nlp >/tmp/lingvilibrist-nlp.json && python -m json.tool /tmp/lingvilibrist-nlp.json >/dev/null
+
+  provenance:
+    if: always() && github.event_name == 'push' && github.ref_name == 'main'
+    needs: [javascript, python-nlp]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Record CI outcome in repository
+        shell: bash
+        env:
+          JS_RESULT: ${{ needs.javascript.result }}
+          PY_RESULT: ${{ needs.python-nlp.result }}
+        run: |
+          set -euo pipefail
+          mkdir -p build-status
+          overall=failure
+          if [[ "$JS_RESULT" == success && "$PY_RESULT" == success ]]; then overall=success; fi
+          cat > build-status/ci-main.json <<EOF
+          {
+            "schema_version": 1,
+            "source_sha": "${GITHUB_SHA}",
+            "workflow_run_id": "${GITHUB_RUN_ID}",
+            "workflow_run_attempt": "${GITHUB_RUN_ATTEMPT}",
+            "javascript": "${JS_RESULT}",
+            "python_nlp": "${PY_RESULT}",
+            "overall": "${overall}",
+            "recorded_at_utc": "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          }
+          EOF
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add build-status/ci-main.json
+          if ! git diff --cached --quiet; then
+            git commit -m 'Record public CI outcome'
+            git push origin HEAD:main
+          fi
+          if [[ "$overall" != success ]]; then exit 1; fi
